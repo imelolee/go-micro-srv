@@ -21,7 +21,7 @@ type User struct {
 
 /* 房屋信息 table_name = house */
 type House struct {
-	gorm.Model                    //房屋编号
+	gorm.Model
 	UserId          uint          //房屋主人的用户编号  与用户进行关联
 	AreaId          uint          //归属地的区域编号   和地区表进行关联
 	Title           string        `gorm:"size:64" `                 //房屋标题
@@ -65,7 +65,7 @@ type HouseImage struct {
 
 /* 订单 table_name = order */
 type OrderHouse struct {
-	gorm.Model            //订单编号
+	gorm.Model
 	UserId      uint      `json:"user_id"`       //下单的用户编号   //与用户表进行关联
 	HouseId     uint      `json:"house_id"`      //预定的房间编号   //与房屋信息进行关联
 	Begin_date  time.Time `gorm:"type:datetime"` //预定的起始时间
@@ -83,7 +83,7 @@ var GlobalConn *gorm.DB
 
 func InitDb() (*gorm.DB, error) {
 	//sql.Open()
-	dsn := "ligen:LiGen1129!@tcp(127.0.0.1:3306)/search_house?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := "root:password@tcp(127.0.0.1:3306)/search_house?charset=utf8mb4&parseTime=True&loc=Local"
 	db, err := gorm.Open(mysql.Open(dsn))
 
 	if err == nil {
@@ -94,10 +94,10 @@ func InitDb() (*gorm.DB, error) {
 		dbConfig.SetMaxIdleConns(10)
 		dbConfig.SetConnMaxLifetime(100)
 
-		err = db.AutoMigrate(&User{}, &House{}, &Area{}, &Facility{}, &HouseImage{}, &OrderHouse{})
+		/*err = db.AutoMigrate(&User{}, &House{}, &Area{}, &Facility{}, &HouseImage{}, &OrderHouse{})
 		if err != nil {
 			return nil, err
-		}
+		}*/
 
 		return db, nil
 	}

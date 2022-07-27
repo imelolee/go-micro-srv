@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/afocus/captcha v0.0.0-20191010092841-4bd1f21c8868
+	github.com/gin-contrib/sessions v0.0.5
 	github.com/gin-gonic/gin v1.8.1
 	github.com/go-micro/plugins/v4/registry/consul v1.0.0
 	github.com/gomodule/redigo v2.0.0+incompatible
@@ -24,7 +25,6 @@ require (
 	github.com/emirpasic/gods v1.12.0 // indirect
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
-	github.com/gin-contrib/sessions v0.0.5 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.3.1 // indirect

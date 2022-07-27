@@ -212,3 +212,75 @@ func DeleteSession(ctx *gin.Context) {
 	}
 	ctx.JSON(http.StatusOK, resp)
 }
+
+func GetUserInfo(ctx *gin.Context) {
+	resp := make(map[string]interface{})
+	defer ctx.JSON(http.StatusOK, resp)
+
+	// 获取 Session, 得到 当前 用户信息
+	s := sessions.Default(ctx)
+	username := s.Get("username")
+	// 判断用户名是否存在.
+	if username == nil { // 用户没登录, 但进入该页面, 恶意进入.
+		resp["errno"] = utils.RECODE_SESSIONERR
+		resp["errmsg"] = utils.RecodeText(utils.RECODE_SESSIONERR)
+		return // 如果出错, 报错, 退出
+	}
+
+	// 根据用户名, 获取 用户信息  ---- 查 MySQL 数据库  user 表.
+	user, err := model.GetUserInfo(username.(string))
+	if err != nil {
+		resp["errno"] = utils.RECODE_DBERR
+		resp["errmsg"] = utils.RecodeText(utils.RECODE_DBERR)
+		return // 如果出错, 报错, 退出
+	}
+
+	resp["errno"] = utils.RECODE_OK
+	resp["errmsg"] = utils.RecodeText(utils.RECODE_OK)
+
+	temp := make(map[string]interface{})
+	temp["user_id"] = user.ID
+	temp["name"] = user.Name
+	temp["mobile"] = user.Mobile
+	temp["real_name"] = user.Real_name
+	temp["id_card"] = user.Id_card
+	temp["avatar_url"] = user.Avatar_url
+
+	resp["data"] = temp
+
+}
+
+// 更新用户信息
+func PutUserInfo(ctx *gin.Context) {
+	// 当前用户名
+	s := sessions.Default(ctx)
+	username := s.Get("username")
+
+	// 新用户名
+	var nameData struct {
+		Name string `json:"name"`
+	}
+	ctx.Bind(&nameData)
+
+	resp := make(map[string]interface{})
+	defer ctx.JSON(http.StatusOK, resp)
+
+	// 更新用户名
+	err := model.UpdateUsername(nameData.Name, username.(string))
+	if err != nil {
+		resp["errno"] = utils.RECODE_DBERR
+		resp["errmsg"] = utils.RecodeText(utils.RECODE_DBERR)
+		return
+	}
+
+	s.Set("username", nameData.Name)
+	err = s.Save()
+	if err != nil {
+		resp["errno"] = utils.RECODE_SESSIONERR
+		resp["errmsg"] = utils.RecodeText(utils.RECODE_SESSIONERR)
+		return
+	}
+	resp["errno"] = utils.RECODE_OK
+	resp["errmsg"] = utils.RecodeText(utils.RECODE_OK)
+	resp["data"] = nameData
+}

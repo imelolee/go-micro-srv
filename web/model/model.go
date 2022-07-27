@@ -83,7 +83,7 @@ var GlobalConn *gorm.DB
 
 func InitDb() (*gorm.DB, error) {
 	//sql.Open()
-	dsn := "ligen:LiGen1129!@tcp(127.0.0.1:3306)/search_house?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := "root:password@tcp(127.0.0.1:3306)/search_house?charset=utf8mb4&parseTime=True&loc=Local"
 	db, err := gorm.Open(mysql.Open(dsn))
 
 	if err == nil {
@@ -94,10 +94,10 @@ func InitDb() (*gorm.DB, error) {
 		dbConfig.SetMaxIdleConns(10)
 		dbConfig.SetConnMaxLifetime(100)
 
-		err = db.AutoMigrate(&User{}, &House{}, &Area{}, &Facility{}, &HouseImage{}, &OrderHouse{})
+		/*err = db.AutoMigrate(&User{}, &House{}, &Area{}, &Facility{}, &HouseImage{}, &OrderHouse{})
 		if err != nil {
 			return nil, err
-		}
+		}*/
 
 		return db, nil
 	}

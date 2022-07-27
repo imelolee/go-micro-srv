@@ -71,3 +71,16 @@ func Login(mobile, pwd string) (string, error) {
 
 	return user.Name, err
 }
+
+// 获取用户信息
+func GetUserInfo(username string) (User, error) {
+	var user User
+	err := GlobalConn.Where("name = ?", username).Find(&user).Error
+	return user, err
+}
+
+// 更新用户名
+func UpdateUsername(newName, oldName string) error {
+	err := GlobalConn.Model(new(User)).Where("name = ?", oldName).Update("name", newName).Error
+	return err
+}
