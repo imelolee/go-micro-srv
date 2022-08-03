@@ -8,6 +8,20 @@ import (
 	"go-micro-srv/web/model"
 )
 
+func LoginFilter() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		// 初始化session对象
+		s := sessions.Default(ctx)
+		userName := s.Get("username")
+		if userName == nil {
+			ctx.Abort() // 停止执行
+		} else {
+			ctx.Next() // 继续下一个中间件
+		}
+
+	}
+}
+
 func main() {
 
 	// 初始化 Redis 链接池
@@ -35,9 +49,13 @@ func main() {
 		r1.POST("/users", controller.PostRet)
 		r1.GET("/areas", controller.GetArea)
 		r1.POST("/sessions", controller.PostLogin)
+
+		r1.Use(LoginFilter())
+
 		r1.DELETE("/session", controller.DeleteSession)
 		r1.GET("/user", controller.GetUserInfo)
 		r1.PUT("/user/name", controller.PutUserInfo)
+		r1.POST("/user/avatar", controller.PostAvatar)
 
 	}
 

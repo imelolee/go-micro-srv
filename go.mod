@@ -8,6 +8,7 @@ require (
 	github.com/gin-gonic/gin v1.8.1
 	github.com/go-micro/plugins/v4/registry/consul v1.0.0
 	github.com/gomodule/redigo v2.0.0+incompatible
+	github.com/jinzhu/gorm v1.9.16
 	go-micro.dev/v4 v4.7.0
 	google.golang.org/protobuf v1.28.0
 	gorm.io/driver/mysql v1.3.5
@@ -67,9 +68,11 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pelletier/go-toml/v2 v2.0.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/qiniu/go-sdk/v7 v7.13.0 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
+	github.com/tedcy/fdfs_client v0.0.0-20200106031142-21a04994525a // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
 	github.com/urfave/cli/v2 v2.3.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.0 // indirect

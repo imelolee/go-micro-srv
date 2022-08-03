@@ -284,3 +284,43 @@ func PutUserInfo(ctx *gin.Context) {
 	resp["errmsg"] = utils.RecodeText(utils.RECODE_OK)
 	resp["data"] = nameData
 }
+
+// 上传用户头像
+func PostAvatar(ctx *gin.Context) {
+	// 获取静态文件对象
+	formFile, fileHeader, _ := ctx.Request.FormFile("avatar")
+
+	/*// 上传文件到项目中
+	err := ctx.SaveUploadedFile(formFile, "test/"+formFile.Filename)
+	if err != nil {
+		fmt.Println(err)
+	}*/
+
+	username := sessions.Default(ctx).Get("username")
+
+	// 上传头像到云存储
+	fileSize := fileHeader.Size
+	fileName := fileHeader.Filename
+	key, err := model.UpLoadFile(formFile, fileName, fileSize)
+	if err != nil {
+		fmt.Println("Upload err: ", err)
+		return
+	}
+
+	resp := make(map[string]interface{})
+	resp["errno"] = utils.RECODE_OK
+	resp["errmsg"] = utils.RecodeText(utils.RECODE_OK)
+
+	temp := make(map[string]interface{})
+	avatar_url := utils.Domain + key
+	temp["avatar_url"] = avatar_url
+	resp["data"] = temp
+
+	err = model.UpdateAvatar(username.(string), avatar_url)
+	if err != nil {
+		fmt.Println("UpdateAvatar err: ", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, resp)
+}

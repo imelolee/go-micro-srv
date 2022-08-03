@@ -1,10 +1,15 @@
 package model
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
 	"github.com/gomodule/redigo/redis"
+	"github.com/qiniu/go-sdk/v7/auth/qbox"
+	"github.com/qiniu/go-sdk/v7/storage"
+	"go-micro-srv/web/utils"
+	"mime/multipart"
 )
 
 // 创建全局redis 连接池 句柄
@@ -82,5 +87,38 @@ func GetUserInfo(username string) (User, error) {
 // 更新用户名
 func UpdateUsername(newName, oldName string) error {
 	err := GlobalConn.Model(new(User)).Where("name = ?", oldName).Update("name", newName).Error
+	return err
+}
+
+// 七牛云上传
+func UpLoadFile(file multipart.File, fileName string, fileSize int64) (key string, err error) {
+
+	key = utils.RandFileName(fileName)
+
+	putPolicy := storage.PutPolicy{
+		Scope: utils.Bucket,
+	}
+	mac := qbox.NewMac(utils.AccessKey, utils.SecretKey)
+	upToken := putPolicy.UploadToken(mac)
+
+	cfg := storage.Config{
+		Zone:          &storage.ZoneHuadong,
+		UseCdnDomains: false,
+		UseHTTPS:      false,
+	}
+
+	putExtra := storage.PutExtra{}
+
+	formUploader := storage.NewFormUploader(&cfg)
+	ret := storage.PutRet{}
+
+	err = formUploader.Put(context.Background(), &ret, upToken, key, file, fileSize, &putExtra)
+
+	return key, err
+}
+
+// 更新用户头像
+func UpdateAvatar(username, avatar string) error {
+	err := GlobalConn.Model(new(User)).Where("name = ?", username).Update("avatar_url", avatar).Error
 	return err
 }

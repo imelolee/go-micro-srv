@@ -5,10 +5,9 @@ go 1.18
 require (
 	github.com/go-micro/plugins/v4/registry/consul v1.0.0
 	github.com/gomodule/redigo v1.8.9
+	github.com/jinzhu/gorm v1.9.16
 	go-micro.dev/v4 v4.7.0
 	google.golang.org/protobuf v1.28.0
-	gorm.io/driver/mysql v1.3.5
-	gorm.io/gorm v1.23.8
 )
 
 require (
