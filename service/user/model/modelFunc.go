@@ -93,3 +93,38 @@ func RegisterUser(mobile, pwd string) error {
 	// 插入数据库
 	return GlobalConn.Create(&user).Error
 }
+
+func Login(mobile, password string) error {
+	var user User
+
+	// password加密处理
+	m5 := md5.New()
+	m5.Write([]byte(password))
+	pwd_hash := hex.EncodeToString(m5.Sum(nil))
+
+	err := GlobalConn.Select("name").
+		Where("mobile = ?", mobile).Where("password_hash = ?", pwd_hash).Find(&user).Error
+
+	return err
+}
+
+func GetUserInfo(userName string) (User, error) {
+	//连接数据库
+	var user User
+	err := GlobalConn.Where("name = ?", userName).Find(&user).Error
+	return user, err
+}
+
+//存储用户真实姓名
+func SaveRealName(userName, realName, idCard string) error {
+	return GlobalConn.Model(new(User)).Where("name = ?", userName).
+		Updates(map[string]interface{}{"real_name": realName, "id_card": idCard}).Error
+}
+
+//更新用户名
+func UpdateUserName(oldName, newName string) error {
+	//更新  链式调用
+	return GlobalConn.Model(new(User)).
+		Where("name = ?", oldName).
+		Update("name", newName).Error
+}

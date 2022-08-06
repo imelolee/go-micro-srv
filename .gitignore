@@ -1,3 +1,4 @@
 /web/view/
 
-/web/utils/localsettings.go
+/service/house/utils/localsettings.go
+/service/user/utils/localsettings.go

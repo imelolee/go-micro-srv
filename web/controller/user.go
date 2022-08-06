@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"go-micro-srv/web/utils"
 	"go-micro.dev/v4"
 	"image/png"
+	"io"
 	"net/http"
 )
 
@@ -91,7 +93,7 @@ func GetSmscd(ctx *gin.Context) {
 	)
 
 	microClient := user.NewUserService("user", consulService.Client())
-	resp, err := microClient.SendSms(context.TODO(), &user.CallRequest{Phone: phone, ImgCode: imgCode, Uuid: uuid})
+	resp, err := microClient.SendSms(context.TODO(), &user.SmsRequest{Phone: phone, ImgCode: imgCode, Uuid: uuid})
 	if err != nil {
 		fmt.Println("未找到远程服务...", err)
 		return
@@ -119,7 +121,7 @@ func PostRet(ctx *gin.Context) {
 	microService := utils.InitMicro()
 	microClient := user.NewUserService("user", microService.Client())
 
-	rsp, err := microClient.Register(context.TODO(), &user.RegReq{
+	rsp, err := microClient.Register(context.TODO(), &user.RegRequest{
 		Mobile:   regData.Mobile,
 		SmsCode:  regData.SmsCode,
 		Password: regData.Password,
@@ -172,31 +174,32 @@ func PostLogin(ctx *gin.Context) {
 	}
 	ctx.Bind(&loginData)
 
-	resp := make(map[string]interface{})
+	// 初始化客户端
+	microService := utils.InitMicro()
+	microClient := user.NewUserService("user", microService.Client())
 
-	// 获取数据库数据
-	username, err := model.Login(loginData.Mobile, loginData.Password)
-	if err == nil {
-		// 登录成功
-		resp["errno"] = utils.RECODE_OK
-		resp["errmsg"] = utils.RecodeText(utils.RECODE_OK)
+	rsp, err := microClient.Login(context.TODO(), &user.RegRequest{
+		Mobile:   loginData.Mobile,
+		Password: loginData.Password,
+	})
 
-		// 将登录状态保存到session
-		session := sessions.Default(ctx)
-		session.Set("username", username)
-		session.Save()
-
-	} else {
-		// 登录失败
-		resp["errno"] = utils.RECODE_LOGINERR
-		resp["errmsg"] = utils.RecodeText(utils.RECODE_LOGINERR)
+	if err != nil {
+		fmt.Println("用户注册找不到远程服务，", err)
+		return
 	}
 
-	ctx.JSON(http.StatusOK, resp)
+	var user model.User
+	model.GlobalConn.Select("name").Where("mobile = ?", loginData.Mobile).Find(&user)
+
+	// 将登录状态保存到session
+	session := sessions.Default(ctx)
+	session.Set("username", user.Name)
+	session.Save()
+
+	ctx.JSON(http.StatusOK, rsp)
 }
 
 func DeleteSession(ctx *gin.Context) {
-	fmt.Println("-----")
 	resp := make(map[string]interface{})
 	// 初始化session对象
 	s := sessions.Default(ctx)
@@ -213,40 +216,53 @@ func DeleteSession(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func GetUserInfo(ctx *gin.Context) {
-	resp := make(map[string]interface{})
-	defer ctx.JSON(http.StatusOK, resp)
+type AuthUser struct {
+	IdCard   string `json:"id_card"`
+	RealName string `json:"real_name"`
+}
 
-	// 获取 Session, 得到 当前 用户信息
-	s := sessions.Default(ctx)
-	username := s.Get("username")
-	// 判断用户名是否存在.
-	if username == nil { // 用户没登录, 但进入该页面, 恶意进入.
-		resp["errno"] = utils.RECODE_SESSIONERR
-		resp["errmsg"] = utils.RecodeText(utils.RECODE_SESSIONERR)
-		return // 如果出错, 报错, 退出
-	}
-
-	// 根据用户名, 获取 用户信息  ---- 查 MySQL 数据库  user 表.
-	user, err := model.GetUserInfo(username.(string))
+func PutUserAuth(ctx *gin.Context) {
+	//获取数据
+	var auth AuthUser
+	err := ctx.Bind(&auth)
+	//校验数据
 	if err != nil {
-		resp["errno"] = utils.RECODE_DBERR
-		resp["errmsg"] = utils.RecodeText(utils.RECODE_DBERR)
-		return // 如果出错, 报错, 退出
+		fmt.Println("获取数据错误", err)
+		return
 	}
 
-	resp["errno"] = utils.RECODE_OK
-	resp["errmsg"] = utils.RecodeText(utils.RECODE_OK)
+	session := sessions.Default(ctx)
+	userName := session.Get("username")
 
-	temp := make(map[string]interface{})
-	temp["user_id"] = user.ID
-	temp["name"] = user.Name
-	temp["mobile"] = user.Mobile
-	temp["real_name"] = user.Real_name
-	temp["id_card"] = user.Id_card
-	temp["avatar_url"] = user.Avatar_url
+	//处理数据  微服务
+	microClient := user.NewUserService("user", utils.GetMicroClient())
+	//调用远程服务
+	resp, _ := microClient.AuthUpdate(context.TODO(), &user.AuthRequest{
+		UserName: userName.(string),
+		RealName: auth.RealName,
+		IdCard:   auth.IdCard,
+	})
 
-	resp["data"] = temp
+	//返回数据
+	ctx.JSON(http.StatusOK, resp)
+}
+
+func GetUserInfo(ctx *gin.Context) {
+	//获取session数据
+	session := sessions.Default(ctx)
+	userName := session.Get("username")
+
+	//调用远程服务
+	microClient := user.NewUserService("user", utils.GetMicroClient())
+	//调用远程服务
+	resp, err := microClient.MicroGetUser(context.TODO(), &user.Request{Name: userName.(string)})
+	if err != nil {
+		fmt.Println("调用远程user服务错误", err)
+		resp.Errno = utils.RECODE_DATAERR
+		resp.Errmsg = utils.RecodeText(utils.RECODE_DATAERR)
+	}
+
+	ctx.JSON(http.StatusOK, resp)
 
 }
 
@@ -262,64 +278,53 @@ func PutUserInfo(ctx *gin.Context) {
 	}
 	ctx.Bind(&nameData)
 
-	resp := make(map[string]interface{})
-	defer ctx.JSON(http.StatusOK, resp)
-
-	// 更新用户名
-	err := model.UpdateUsername(nameData.Name, username.(string))
-	if err != nil {
-		resp["errno"] = utils.RECODE_DBERR
-		resp["errmsg"] = utils.RecodeText(utils.RECODE_DBERR)
-		return
-	}
+	//调用远程服务
+	microClient := user.NewUserService("user", utils.GetMicroClient())
+	//调用远程服务
+	resp, err := microClient.UpdateUserName(context.TODO(),
+		&user.UpdateRequest{
+			NewName: nameData.Name,
+			OldName: username.(string),
+		})
 
 	s.Set("username", nameData.Name)
 	err = s.Save()
 	if err != nil {
-		resp["errno"] = utils.RECODE_SESSIONERR
-		resp["errmsg"] = utils.RecodeText(utils.RECODE_SESSIONERR)
+		resp.Errno = utils.RECODE_SESSIONERR
+		resp.Errmsg = utils.RecodeText(utils.RECODE_SESSIONERR)
 		return
 	}
-	resp["errno"] = utils.RECODE_OK
-	resp["errmsg"] = utils.RecodeText(utils.RECODE_OK)
-	resp["data"] = nameData
+	ctx.JSON(http.StatusOK, resp)
 }
 
 // 上传用户头像
 func PostAvatar(ctx *gin.Context) {
 	// 获取静态文件对象
 	formFile, fileHeader, _ := ctx.Request.FormFile("avatar")
-
-	/*// 上传文件到项目中
-	err := ctx.SaveUploadedFile(formFile, "test/"+formFile.Filename)
-	if err != nil {
-		fmt.Println(err)
-	}*/
+	defer formFile.Close()
+	// 将文件转为byte数组
+	buf := bytes.NewBuffer(nil)
+	if _, err := io.Copy(buf, formFile); err != nil {
+		fmt.Println("File err: ", err)
+	}
 
 	username := sessions.Default(ctx).Get("username")
 
-	// 上传头像到云存储
-	fileSize := fileHeader.Size
-	fileName := fileHeader.Filename
-	key, err := model.UpLoadFile(formFile, fileName, fileSize)
+	//调用远程服务
+	microClient := user.NewUserService("user", utils.GetMicroClient())
+	//调用远程服务
+	resp, err := microClient.UploadAvatar(context.TODO(),
+		&user.UploadRequest{
+			Avatar:   buf.Bytes(),
+			UserName: username.(string),
+			FileExt:  fileHeader.Filename,
+			FileSize: fileHeader.Size,
+		})
+
 	if err != nil {
-		fmt.Println("Upload err: ", err)
-		return
-	}
-
-	resp := make(map[string]interface{})
-	resp["errno"] = utils.RECODE_OK
-	resp["errmsg"] = utils.RecodeText(utils.RECODE_OK)
-
-	temp := make(map[string]interface{})
-	avatar_url := utils.Domain + key
-	temp["avatar_url"] = avatar_url
-	resp["data"] = temp
-
-	err = model.UpdateAvatar(username.(string), avatar_url)
-	if err != nil {
-		fmt.Println("UpdateAvatar err: ", err)
-		return
+		fmt.Println("调用远程user服务错误", err)
+		resp.Errno = utils.RECODE_DATAERR
+		resp.Errmsg = utils.RecodeText(utils.RECODE_DATAERR)
 	}
 
 	ctx.JSON(http.StatusOK, resp)

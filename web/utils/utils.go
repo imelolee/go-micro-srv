@@ -3,6 +3,7 @@ package utils
 import (
 	"github.com/go-micro/plugins/v4/registry/consul"
 	"go-micro.dev/v4"
+	"go-micro.dev/v4/client"
 	"math/rand"
 	"path/filepath"
 	"strings"
@@ -16,6 +17,14 @@ func InitMicro() micro.Service {
 
 	return micro.NewService(micro.Registry(consulReg))
 
+}
+
+func GetMicroClient() client.Client {
+	consulReg := consul.NewRegistry()
+	microService := micro.NewService(
+		micro.Registry(consulReg),
+	)
+	return microService.Client()
 }
 
 func getRandstring(length int) string {

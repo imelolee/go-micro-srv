@@ -5,23 +5,96 @@ package user;
 option go_package = "./proto;user";
 
 service User {
-	rpc SendSms(CallRequest) returns (CallResponse) {};
-	rpc Register(RegReq) returns (CallResponse) {};
+	rpc SendSms(SmsRequest) returns (RegResponse) {};
+	rpc Register(RegRequest) returns (RegResponse) {};
+	rpc Login(RegRequest)returns(RegResponse){};
+
+	rpc MicroGetUser(Request) returns (Response) {};
+	rpc UpdateUserName(UpdateRequest)returns(UpdateResponse){};
+	rpc UploadAvatar(UploadRequest)returns(UploadResponse){};
+	rpc AuthUpdate(AuthRequest)returns(AuthResponse){};
 }
-message RegReq{
+
+message SmsRequest{
+	string phone = 1;
+	string imgCode = 2;
+	string uuid = 3;
+}
+
+message RegRequest{
 	string mobile = 1;
 	string password = 2;
 	string sms_code = 3;
 }
 
 
-message CallRequest {
-	string phone = 1;
-	string imgCode = 2;
-	string uuid = 3;
-}
-
-message CallResponse {
+message RegResponse {
 	string errno = 1;
 	string errmsg = 2;
+}
+
+message AuthRequest{
+	string id_card = 1;
+	string real_name = 2;
+	string userName = 3;
+}
+
+message AuthResponse{
+	string errno = 1;
+	string errmsg = 2;
+}
+
+message UploadData{
+	string avatar_url = 1;
+}
+
+message UploadResponse{
+	string errno = 1;
+	string errmsg = 2;
+	UploadData data = 3;
+}
+
+
+
+message UploadRequest{
+	bytes avatar = 1;
+	string userName = 2;
+	string fileExt = 3;
+	int64 fileSize = 4;
+}
+
+
+message UpdateRequest{
+	string newName = 1;
+	string oldName = 2;
+}
+
+message NameData{
+	string name = 1;
+}
+
+message UpdateResponse{
+	string errno = 1;
+	string errmsg = 2;
+	NameData data = 3;
+}
+
+message Request {
+	string name = 1;
+}
+
+message UserInfo{
+	int32 user_id = 1;
+	string name = 2;
+	string mobile = 3;
+	string real_name = 4;
+	string id_card = 5;
+	string avatar_url = 6;
+}
+
+
+message Response {
+	string errno = 1;
+	string errmsg = 2;
+	UserInfo data = 3;
 }
