@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 
 	"house/model"
 	house "house/proto"
@@ -13,6 +14,7 @@ type House struct{}
 
 func (e *House) PubHouse(ctx context.Context, req *house.Request, rsp *house.Response) error {
 	//上传房屋业务  把获取到的房屋数据插入数据库
+	fmt.Println("-----------", req)
 	houseId, err := model.AddHouse(req)
 	if err != nil {
 		rsp.Errno = utils.RECODE_DBERR
@@ -56,6 +58,7 @@ func (e *House) UploadHouseImg(ctx context.Context, req *house.ImgRequest, resp 
 
 func (e *House) GetHouseInfo(ctx context.Context, req *house.GetRequest, resp *house.GetResponse) error {
 	//根据用户名获取所有的房屋数据
+
 	houseInfos, err := model.GetUserHouse(req.UserName)
 	if err != nil {
 		resp.Errno = utils.RECODE_DBERR

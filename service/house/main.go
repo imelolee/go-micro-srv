@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
+	"github.com/go-micro/plugins/v4/registry/consul"
 	"house/handler"
+	"house/model"
 	pb "house/proto"
 
 	"go-micro.dev/v4"
@@ -14,15 +17,24 @@ var (
 )
 
 func main() {
+	model.InitRedis()
+	model.InitDb()
+
+	consulReg := consul.NewRegistry()
+
 	// Create service
 	srv := micro.NewService(
 		micro.Name(service),
 		micro.Version(version),
+		micro.Registry(consulReg),
 	)
-	srv.Init()
 
 	// Register handler
-	pb.RegisterHouseHandler(srv.Server(), new(handler.House))
+	err := pb.RegisterHouseHandler(srv.Server(), new(handler.House))
+	if err != nil {
+		fmt.Println("RegisterUserHandler err: ", err)
+		return
+	}
 	// Run service
 	if err := srv.Run(); err != nil {
 		log.Fatal(err)

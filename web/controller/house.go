@@ -17,8 +17,13 @@ func GetUserHouses(ctx *gin.Context) {
 	username := sessions.Default(ctx).Get("username")
 
 	microClient := house.NewHouseService("house", utils.GetMicroClient())
+
 	//调用远程服务
-	resp, _ := microClient.GetHouseInfo(context.TODO(), &house.GetRequest{UserName: username.(string)})
+	resp, err := microClient.GetHouseInfo(context.TODO(), &house.GetRequest{UserName: username.(string)})
+	if err != nil {
+		fmt.Println("远程服务调用失败：", err)
+		return
+	}
 
 	//返回数据
 	ctx.JSON(http.StatusOK, resp)
@@ -42,6 +47,7 @@ type HouseStu struct {
 
 //发布房源
 func PostHouses(ctx *gin.Context) {
+
 	//获取数据   bind数据的时候不带自动转换   c.getInt()
 	var houseStu HouseStu
 	err := ctx.Bind(&houseStu)
@@ -53,12 +59,13 @@ func PostHouses(ctx *gin.Context) {
 	}
 
 	//获取用户名
-	userName := sessions.Default(ctx).Get("userName")
+	userName := sessions.Default(ctx).Get("username")
 
 	//处理数据  服务端处理
 	microClient := house.NewHouseService("house", utils.GetMicroClient())
 	//调用远程服务
-	resp, _ := microClient.PubHouse(context.TODO(), &house.Request{
+
+	resp, err := microClient.PubHouse(context.TODO(), &house.Request{
 		Acreage:   houseStu.Acreage,
 		Address:   houseStu.Address,
 		AreaId:    houseStu.AreaId,
@@ -74,6 +81,11 @@ func PostHouses(ctx *gin.Context) {
 		Unit:      houseStu.Unit,
 		UserName:  userName.(string),
 	})
+
+	if err != nil {
+		fmt.Println("远程服务调用错误", err)
+		return
+	}
 
 	//返回数据
 	ctx.JSON(http.StatusOK, resp)
@@ -115,6 +127,7 @@ func PostHousesImage(ctx *gin.Context) {
 
 //获取房屋详情
 func GetHouseInfo(ctx *gin.Context) {
+
 	//获取数据
 	houseId := ctx.Param("id")
 	//校验数据
@@ -122,7 +135,8 @@ func GetHouseInfo(ctx *gin.Context) {
 		fmt.Println("获取数据错误")
 		return
 	}
-	userName := sessions.Default(ctx).Get("userName")
+	userName := sessions.Default(ctx).Get("username")
+
 	//处理数据
 	microClient := house.NewHouseService("house", utils.GetMicroClient())
 	//调用远程服务
@@ -163,7 +177,7 @@ func GetHouses(ctx *gin.Context) {
 		return
 	}
 
-	microClient := house.NewHouseService("go.micro.srv.house", utils.GetMicroClient())
+	microClient := house.NewHouseService("house", utils.GetMicroClient())
 	//调用远程服务
 	resp, _ := microClient.SearchHouse(context.TODO(), &house.SearchRequest{
 		Aid: aid,
