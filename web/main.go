@@ -41,6 +41,7 @@ func main() {
 	router.Use(sessions.Sessions("mysession", store))
 
 	router.Static("/home", "view")
+
 	r1 := router.Group("/api/v1.0")
 	{
 		r1.GET("/session", controller.GetSession)

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"go-micro-srv/web/proto/order"
+	"go-micro-srv/web/proto/userOrder"
 	"go-micro-srv/web/utils"
 	"net/http"
 )
@@ -28,17 +28,22 @@ func PostOrders(ctx *gin.Context) {
 		return
 	}
 	//获取用户名
-	userName := sessions.Default(ctx).Get("userName")
+	userName := sessions.Default(ctx).Get("username")
 
 	//处理数据  服务端处理业务
-	microClient := order.NewOrderService("go.micro.srv.userOrder", utils.GetMicroClient())
+	microClient := userOrder.NewUserOrderService("userorder", utils.GetMicroClient())
 	//调用服务
-	resp, _ := microClient.CreateOrder(context.TODO(), &order.Request{
+	resp, err := microClient.CreateOrder(context.TODO(), &userOrder.Request{
 		StartDate: orderStu.StartDate,
 		EndDate:   orderStu.EndDate,
 		HouseId:   orderStu.HouseId,
 		UserName:  userName.(string),
 	})
+
+	if err != nil {
+		fmt.Println("远程服务错误: ", err)
+		return
+	}
 
 	//返回数据
 	ctx.JSON(http.StatusOK, resp)
@@ -55,11 +60,11 @@ func GetUserOrder(ctx *gin.Context) {
 	}
 
 	//处理数据  服务端
-	microClient := order.NewOrderService("go.micro.srv.userOrder", utils.GetMicroClient())
+	microClient := userOrder.NewUserOrderService("userorder", utils.GetMicroClient())
 	//调用远程服务
-	resp, _ := microClient.GetOrderInfo(context.TODO(), &order.GetRequest{
+	resp, _ := microClient.GetOrderInfo(context.TODO(), &userOrder.GetRequest{
 		Role:     role,
-		UserName: sessions.Default(ctx).Get("userName").(string),
+		UserName: sessions.Default(ctx).Get("username").(string),
 	})
 
 	//返回数据
@@ -85,9 +90,9 @@ func PutOrders(ctx *gin.Context) {
 	}
 
 	//处理数据   更新订单状态
-	microClient := order.NewOrderService("go.micro.srv.userOrder", utils.GetMicroClient())
+	microClient := userOrder.NewUserOrderService("userorder", utils.GetMicroClient())
 	//调用元和产能服务
-	resp, _ := microClient.UpdateStatus(context.TODO(), &order.UpdateRequest{
+	resp, _ := microClient.UpdateStatus(context.TODO(), &userOrder.UpdateRequest{
 		Action: statusStu.Action,
 		Reason: statusStu.Reason,
 		Id:     id,

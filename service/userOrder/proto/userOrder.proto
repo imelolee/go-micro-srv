@@ -1,9 +1,10 @@
 syntax = "proto3";
 
-package go.micro.srv.userOrder;
-option go_package = "./proto;order";
+package userOrder;
 
-service Order {
+option go_package = "./proto;userOrder";
+
+service UserOrder {
 	rpc CreateOrder(Request) returns (Response) {};
 	rpc GetOrderInfo(GetRequest)returns(GetResponse){};
 	rpc UpdateStatus(UpdateRequest)returns(UpdateResponse){};
